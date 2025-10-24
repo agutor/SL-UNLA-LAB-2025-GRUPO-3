@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 # Cargar variables del archivo .env
 load_dotenv()
 
-# Variables de base de datos (arreglar el espacio)
+# Variables de base de datos
 URL_BASE_DATOS = os.getenv("URL_BASE_DATOS")
 
 # Variables de turnos

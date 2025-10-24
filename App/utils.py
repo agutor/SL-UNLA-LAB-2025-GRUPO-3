@@ -1,10 +1,10 @@
-from sqlalchemy import event
 from datetime import date
 from fastapi import HTTPException
 from email_validator import validate_email, EmailNotValidError
+import calendar
 
 from .config import ESTADO_ASISTIDO, ESTADO_CANCELADO, MAX_EDAD_PERMITIDA
-from .database import SesionLocal, engine
+from .database import SesionLocal
 
 #Acceder a la base de datos
 def get_db():
@@ -81,3 +81,7 @@ def validar_turno_modificable(turno):
             status_code=400,
             detail=f"No se puede modificar un turno {turno.estado}"
         )
+
+def obtener_nombre_mes(fecha):
+    
+    return calendar.month_name[fecha.month].lower()

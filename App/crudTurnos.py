@@ -2,7 +2,8 @@ from datetime import date, time, timedelta, datetime
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from App.schemas import turno_base
+from App.schemas import turno_base, PersonaConTurnos, TurnoReporte
+from typing import List
 
 from .utils import validar_fecha_pasada, validar_turno_modificable
 from .crudPersonas import validar_persona_habilitada, buscar_persona, cambiar_estado_persona
@@ -199,86 +200,70 @@ def marcar_asistencia_turno(db: Session, turno_id: int):
     
     return turno
 
-# punto E
-def obtener_turnos_por_fecha_con_persona(db: Session, fecha: date):
-    turnos = db.query(Turno, Persona).join(Persona, Turno.persona_id == Persona.id).filter(
-        Turno.fecha == fecha
-    ).all()
+
+def agrupar_turnos_por_persona(turnos, incluir_fecha=False):
     
-    return turnos
+    personas_dict = {}
+    
+    for turno in turnos:
+        persona_id = turno.persona_id
+        
+        if persona_id not in personas_dict:
+            personas_dict[persona_id] = PersonaConTurnos(
+                nombre=turno.persona.nombre,
+                dni=turno.persona.dni,
+                cantidad_turnos=0,
+                turnos=[]
+            )
+        
+        turno_reporte = TurnoReporte(
+            id=turno.id,
+            hora=turno.hora.strftime("%H:%M"),
+            estado=turno.estado
+        )
+        
+        if incluir_fecha:
+            turno_reporte.fecha = turno.fecha.strftime("%Y-%m-%d")
+        
+        personas_dict[persona_id].turnos.append(turno_reporte)
+    
+    # Cantidad de turnos por persona
+    for persona in personas_dict.values():
+        persona.cantidad_turnos = len(persona.turnos)
+    
+    return list(personas_dict.values())
 
 
 def obtener_turnos_cancelados_mes_actual(db: Session):
-    fecha_actual = datetime.now()
-    mes_actual = fecha_actual.month
-    año_actual = fecha_actual.year
     
-    turnos = db.query(
-        func.extract('year', Turno.fecha).label('año'),
-        func.extract('month', Turno.fecha).label('mes'),
-        func.count(Turno.id).label('cantidad'),
-        Turno, Persona
-    ).join(Persona, Turno.persona_id == Persona.id).filter(
+    fecha_actual = date.today()
+    primer_dia_mes = date(fecha_actual.year, fecha_actual.month, 1)
+    
+    # Calculo ultimo dia de mes, if necesario para diciembre - enero
+    if fecha_actual.month == 12:
+        ultimo_dia_mes = date(fecha_actual.year + 1, 1, 1) - timedelta(days=1)
+    else:
+        ultimo_dia_mes = date(fecha_actual.year, fecha_actual.month + 1, 1) - timedelta(days=1)
+    
+    turnos = db.query(Turno).filter(
         Turno.estado == ESTADO_CANCELADO,
-        func.extract('month', Turno.fecha) == mes_actual,
-        func.extract('year', Turno.fecha) == año_actual
-    ).group_by(
-        func.extract('year', Turno.fecha),
-        func.extract('month', Turno.fecha),
-        Turno.id, Persona.id
+        Turno.fecha >= primer_dia_mes,
+        Turno.fecha <= ultimo_dia_mes
     ).all()
     
     return turnos
 
 
-def obtener_turnos_por_persona(db: Session, dni: str):
-    turnos = db.query(Turno, Persona).join(Persona, Turno.persona_id == Persona.id).filter(
-        Persona.dni == dni
-    ).all()
+def obtener_turnos_por_dni(db: Session, dni: str):
+
+    persona = db.query(Persona).filter(Persona.dni == dni).first()
+    
+    if not persona:
+        raise HTTPException(status_code=404, detail="Persona no encontrada con ese DNI")
+    
+    turnos = db.query(Turno).filter(Turno.persona_id == persona.id).all()
+    
+    if not turnos:
+        raise HTTPException(status_code=404, detail="No se encontraron turnos para esta persona")
     
     return turnos
-
-
-def obtener_personas_con_turnos_cancelados(db: Session, min_cancelados: int = MIN_CANCELADOS_DEFAULT):
-    personas = db.query(Persona).join(Turno, Persona.id == Turno.persona_id).filter(
-        Turno.estado == ESTADO_CANCELADO
-    ).group_by(Persona.id).having(
-        func.count(Turno.id) >= min_cancelados
-    ).all()
-    
-    resultado = []
-    for persona in personas:
-        turnos_cancelados = db.query(Turno).filter(
-            Turno.persona_id == persona.id,
-            Turno.estado == ESTADO_CANCELADO
-        ).all()
-        
-        resultado.append({
-            'persona': persona,
-            'cantidad_cancelados': len(turnos_cancelados),
-            'turnos_cancelados': turnos_cancelados
-        })
-    
-    return resultado
-
-
-def obtener_turnos_confirmados_periodo(db: Session, fecha_desde: date, fecha_hasta: date, offset: int = 0, limit: int = LIMIT_PAGINACION_DEFAULT):
-    turnos = db.query(Turno, Persona).join(Persona, Turno.persona_id == Persona.id).filter(
-        Turno.estado == ESTADO_CONFIRMADO,
-        Turno.fecha >= fecha_desde,
-        Turno.fecha <= fecha_hasta
-    ).offset(offset).limit(limit).all()
-    
-    total = db.query(Turno).filter(
-        Turno.estado == ESTADO_CONFIRMADO,
-        Turno.fecha >= fecha_desde,
-        Turno.fecha <= fecha_hasta
-    ).count()
-    
-    return turnos, total
-
-
-def obtener_personas_por_estado(db: Session, habilitada: bool):
-    personas = db.query(Persona).filter(Persona.habilitado == habilitada).all()
-    
-    return personas
