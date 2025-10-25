@@ -1,14 +1,12 @@
 from datetime import date, time, timedelta, datetime
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from App.schemas import turno_base, PersonaConTurnos, TurnoReporte
-from typing import List
 
 from .utils import validar_fecha_pasada, validar_turno_modificable
 from .crudPersonas import validar_persona_habilitada, buscar_persona, cambiar_estado_persona
 from .models import Turno, Persona
-from .config import HORARIO_INICIO, HORARIO_FIN, INTERVALO_TURNOS_MINUTOS, MAX_TURNOS_CANCELADOS, DIAS_LIMITE_CANCELACIONES, ESTADO_PENDIENTE, ESTADO_CONFIRMADO, ESTADO_CANCELADO, ESTADO_ASISTIDO, MIN_CANCELADOS_DEFAULT, LIMIT_PAGINACION_DEFAULT
+from .config import HORARIO_INICIO, HORARIO_FIN, INTERVALO_TURNOS_MINUTOS, MAX_TURNOS_CANCELADOS, DIAS_LIMITE_CANCELACIONES, ESTADO_PENDIENTE, ESTADO_CONFIRMADO, ESTADO_CANCELADO, ESTADO_ASISTIDO, LIMIT_PAGINACION_DEFAULT
 
 
 def crear_turno(db: Session, turno_data: turno_base):
@@ -28,9 +26,6 @@ def crear_turno(db: Session, turno_data: turno_base):
 
     horarios_disponibles = obtener_turnos_disponibles(db, turno_data.fecha)
     hora_solicitada = turno_data.hora.strftime("%H:%M")
-
-    print(f"🔍 Hora solicitada: {hora_solicitada}")
-    print(f"🔍 Horarios disponibles: {horarios_disponibles}")
     
     if hora_solicitada not in horarios_disponibles:
         raise HTTPException(
@@ -145,7 +140,7 @@ def obtener_turnos_disponibles(db: Session, fecha: date):
     horas_ocupadas = {turno.hora for turno in turnos_ocupados}
     
     return [
-        hora.strftime("%H:%M") 
+        hora 
         for hora in horarios_posibles 
         if hora not in horas_ocupadas
     ]
@@ -210,6 +205,7 @@ def agrupar_turnos_por_persona(turnos, incluir_fecha=False):
         
         if persona_id not in personas_dict:
             personas_dict[persona_id] = PersonaConTurnos(
+                id=turno.persona.id,
                 nombre=turno.persona.nombre,
                 dni=turno.persona.dni,
                 cantidad_turnos=0,
@@ -218,12 +214,12 @@ def agrupar_turnos_por_persona(turnos, incluir_fecha=False):
         
         turno_reporte = TurnoReporte(
             id=turno.id,
-            hora=turno.hora.strftime("%H:%M"),
+            hora=turno.hora,
             estado=turno.estado
         )
         
         if incluir_fecha:
-            turno_reporte.fecha = turno.fecha.strftime("%Y-%m-%d")
+            turno_reporte.fecha = turno.fecha
         
         personas_dict[persona_id].turnos.append(turno_reporte)
     
@@ -267,3 +263,28 @@ def obtener_turnos_por_dni(db: Session, dni: str):
         raise HTTPException(status_code=404, detail="No se encontraron turnos para esta persona")
     
     return turnos
+
+
+
+
+def obtener_turnos_confirmados_por_periodo(db: Session, fecha_desde: date, fecha_hasta: date, pagina: int = 1, limite: int = LIMIT_PAGINACION_DEFAULT):
+    
+    if fecha_desde > fecha_hasta:
+        raise HTTPException(
+            status_code=400, 
+            detail="La fecha 'desde' no puede ser posterior a la fecha 'hasta'"
+        )
+    
+    turnos_confirmados_query = db.query(Turno).filter(
+        Turno.estado == ESTADO_CONFIRMADO,
+        Turno.fecha >= fecha_desde,
+        Turno.fecha <= fecha_hasta
+    )
+    
+    #Se cuenta el total de turnos confirmados para calcular la paginacion
+    total_turnos_confirmados = turnos_confirmados_query.count()
+    
+    offset = (pagina - 1) * limite
+    turnos_paginados = turnos_confirmados_query.offset(offset).limit(limite).all()
+    
+    return turnos_paginados, total_turnos_confirmados

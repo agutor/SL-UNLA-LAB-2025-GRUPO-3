@@ -19,16 +19,66 @@ class actualizar_turno_base(BaseModel):
     estado: Optional[str] = None
 
 
-# Schemas para reportes
-class TurnoReporte(BaseModel):
-    
+# Validación de Personas (Ingreso de datos)
+class persona_base(BaseModel):
+    nombre: str
+    dni: str
+    email: str
+    telefono: str
+    fecha_nacimiento: date
+
+
+class actualizar_persona_base(BaseModel):
+    nombre: Optional[str] = None
+    dni: Optional[str] = None
+    email: Optional[str] = None
+    telefono: Optional[str] = None
+    fecha_nacimiento: Optional[date] = None
+
+
+# Schemas de respuesta para turnos
+class TurnoRespuesta(BaseModel):
     id: int
-    hora: str
+    persona_id: int
+    fecha: date
+    hora: time
     estado: str
-    fecha: Optional[str] = None
+
+
+class TurnosDisponiblesRespuesta(BaseModel):
+    fecha: date
+    horarios_disponibles: List[time]
+
+
+# Schemas de respuesta para personas
+class PersonaRespuesta(BaseModel):
+    id: int
+    nombre: str
+    dni: str
+    email: str
+    telefono: str
+    fecha_nacimiento: date
+    edad: int
+    habilitado: bool
+
+
+# Schemas para reportes
+class PersonaSimple(BaseModel):
+    id: int
+    nombre: str
+    dni: str
+
+
+class TurnoReporte(BaseModel):
+    id: int
+    hora: time
+    estado: str
+    fecha: Optional[date] = None
+    persona: Optional[PersonaSimple] = None
 
 
 class PersonaConTurnos(BaseModel):
+    id: int
     nombre: str
     dni: str
     cantidad_turnos: int
@@ -36,7 +86,7 @@ class PersonaConTurnos(BaseModel):
 
 
 class ReporteTurnosPorFecha(BaseModel):
-    fecha: str
+    fecha: date
     cantidad_turnos: int
     cantidad_personas: int
     personas: List[PersonaConTurnos]
@@ -49,3 +99,34 @@ class ReporteTurnosCancelados(BaseModel):
     cantidad_personas: int
     personas: List[PersonaConTurnos]
 
+
+class ReportePersonasConCancelaciones(BaseModel):
+    min_cancelados: int
+    cantidad_personas: int
+    personas: List[PersonaConTurnos]
+
+
+class ReporteTurnosConfirmadosPaginado(BaseModel):
+    desde: date
+    hasta: date
+    pagina: int
+    total_turnos: int
+    total_paginas: int
+    turnos: List[TurnoReporte]
+
+
+class PersonaCompleta(BaseModel):
+    id: int
+    nombre: str
+    dni: str
+    email: str
+    telefono: str
+    fecha_nacimiento: date
+    edad: int
+    habilitado: bool
+
+
+class ReporteEstadoPersonas(BaseModel):
+    habilitado: bool
+    cantidad_personas: int
+    personas: List[PersonaCompleta]

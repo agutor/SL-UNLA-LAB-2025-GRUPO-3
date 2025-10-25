@@ -1,31 +1,29 @@
-from datetime import date, timedelta
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from App.schemas import persona_base, actualizar_persona_base
 
-
-from .utils import validar_email, validar_formato_fecha, validar_fecha_nacimiento
+from .utils import validar_email, validar_fecha_nacimiento
 from .models import Persona, Turno
-from .config import MAX_TURNOS_CANCELADOS, DIAS_LIMITE_CANCELACIONES, ESTADO_CANCELADO
+from .config import ESTADO_CANCELADO
 
 
-def crear_persona(db: Session, datos: dict):
+def crear_persona(db: Session, persona_data: persona_base):
     # Validar email
-    email_normalizado = validar_email(datos["email"])
+    email_normalizado = validar_email(persona_data.email)
     
     # Verificar que no exista otra persona con los mismos datos
-    verificar_persona_existente(db, email_normalizado, datos["dni"], datos["telefono"])
+    verificar_persona_existente(db, email_normalizado, persona_data.dni, persona_data.telefono)
 
     # Validar fecha de nacimiento
-    validar_formato_fecha(datos["fecha_nacimiento"])
-    validar_fecha_nacimiento(date.fromisoformat(datos["fecha_nacimiento"]))
+    validar_fecha_nacimiento(persona_data.fecha_nacimiento)
 
     # Crear persona
     nueva_persona = Persona(
-        nombre=datos["nombre"],
+        nombre=persona_data.nombre,
         email=email_normalizado,
-        dni=datos["dni"],
-        telefono=datos["telefono"],
-        fecha_nacimiento=date.fromisoformat(datos["fecha_nacimiento"]),
+        dni=persona_data.dni,
+        telefono=persona_data.telefono,
+        fecha_nacimiento=persona_data.fecha_nacimiento,
         habilitado=True
     )
     
@@ -39,58 +37,33 @@ def obtener_todas_personas(db: Session):
     return db.query(Persona).all()
 
 
-def actualizar_persona(db: Session, persona_id: int, datos: dict):
+def actualizar_persona(db: Session, persona_id: int, persona_data: actualizar_persona_base):
     persona = buscar_persona(db, persona_id)
     
-    if "dni" in datos:
-        raise HTTPException(status_code=400, detail="No se permite modificar el DNI de una persona")
-    if "fecha_nacimiento" in datos:
-        raise HTTPException(status_code=400, detail="No se permite modificar la fecha de nacimiento de una persona")
-    
-    email_normalizado = None
-    if "email" in datos:
-        email_normalizado = validar_email(datos["email"])
-
-    # Verificar duplicados si se están actualizando campos únicos
-    if "email" in datos or "telefono" in datos:
-        email = email_normalizado if email_normalizado else persona.email
-        telefono = datos.get("telefono", persona.telefono)
-        
-        persona_existente = db.query(Persona).filter(
-            Persona.id != persona_id,
-            ((Persona.email == email) | (Persona.telefono == telefono))
-        ).first()
-
-        if persona_existente:
-            raise HTTPException(status_code=400, detail="Ya existe otra persona con este email o teléfono")
-
-    # actualizar campos
-    if "nombre" in datos:
-        persona.nombre = datos["nombre"]
-    if "email" in datos:
+    # Validar y actualizar email
+    if persona_data.email is not None:
+        email_normalizado = validar_email(persona_data.email)
+        verificar_email_duplicado(db, email_normalizado, persona_id)
         persona.email = email_normalizado
-    if "dni" in datos:
-        persona.dni = datos["dni"]
-    if "telefono" in datos:
-        persona.telefono = datos["telefono"]
     
-    if "habilitado" in datos:
-        nuevo_estado_habilitado = datos["habilitado"]
-        if nuevo_estado_habilitado is False:
-            # Verificar 5 cancelaciones en los ultimos 6 meses antes de deshabilitar
-            fecha_actual = date.today()
-            fecha_limite = fecha_actual - timedelta(days=DIAS_LIMITE_CANCELACIONES)
-            turnos_cancelados = db.query(Turno).filter(
-                Turno.persona_id == persona.id,
-                Turno.estado == ESTADO_CANCELADO,
-                Turno.fecha >= fecha_limite
-            ).count()
-            if turnos_cancelados < MAX_TURNOS_CANCELADOS:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"No se puede deshabilitar: la persona no tiene al menos {MAX_TURNOS_CANCELADOS} turnos cancelados en los ultimos 6 meses"
-                )
-        persona.habilitado = nuevo_estado_habilitado
+    # Validar y actualizar DNI
+    if persona_data.dni is not None:
+        verificar_dni_duplicado(db, persona_data.dni, persona_id)
+        persona.dni = persona_data.dni
+    
+    # Validar y actualizar teléfono
+    if persona_data.telefono is not None:
+        verificar_telefono_duplicado(db, persona_data.telefono, persona_id)
+        persona.telefono = persona_data.telefono
+    
+    # Validar y actualizar fecha de nacimiento
+    if persona_data.fecha_nacimiento is not None:
+        validar_fecha_nacimiento(persona_data.fecha_nacimiento)
+        persona.fecha_nacimiento = persona_data.fecha_nacimiento
+    
+    # Actualizar nombre
+    if persona_data.nombre is not None:
+        persona.nombre = persona_data.nombre
     
     db.commit()
     db.refresh(persona)
@@ -124,8 +97,6 @@ def cambiar_estado_persona(db: Session, persona_id: int):
 
 
 def verificar_persona_existente(db: Session, email: str, dni: str, telefono: str):
-
-
     persona_existente = db.query(Persona).filter(
         (Persona.email == email) | 
         (Persona.dni == dni) | 
@@ -134,3 +105,56 @@ def verificar_persona_existente(db: Session, email: str, dni: str, telefono: str
     
     if persona_existente:
         raise HTTPException(status_code=400, detail="Ya existe una persona con este email, DNI o telefono")
+
+
+def verificar_email_duplicado(db: Session, email: str, persona_id: int):
+    persona_existente = db.query(Persona).filter(
+        Persona.id != persona_id,
+        Persona.email == email
+    ).first()
+    
+    if persona_existente:
+        raise HTTPException(status_code=400, detail="Ya existe otra persona con este email")
+
+
+def verificar_dni_duplicado(db: Session, dni: str, persona_id: int):
+    persona_existente = db.query(Persona).filter(
+        Persona.id != persona_id,
+        Persona.dni == dni
+    ).first()
+    
+    if persona_existente:
+        raise HTTPException(status_code=400, detail="Ya existe otra persona con este DNI")
+
+
+def verificar_telefono_duplicado(db: Session, telefono: str, persona_id: int):
+    persona_existente = db.query(Persona).filter(
+        Persona.id != persona_id,
+        Persona.telefono == telefono
+    ).first()
+    
+    if persona_existente:
+        raise HTTPException(status_code=400, detail="Ya existe otra persona con este teléfono")
+
+
+def obtener_personas_con_turnos_cancelados(db: Session, min_cancelados: int):
+    
+    personas = db.query(Persona).all()
+    
+    todos_turnos_cancelados = []
+    
+    for persona in personas:
+        turnos_cancelados = db.query(Turno).filter(
+            Turno.persona_id == persona.id,
+            Turno.estado == ESTADO_CANCELADO
+        ).all()
+        
+        #Si la persona tiene al menos min_cancelados se agregan a la lista
+        if len(turnos_cancelados) >= min_cancelados:
+            todos_turnos_cancelados.extend(turnos_cancelados)
+    
+    return todos_turnos_cancelados
+
+
+def obtener_personas_por_estado(db: Session, habilitado: bool):
+    return db.query(Persona).filter(Persona.habilitado == habilitado).all()
