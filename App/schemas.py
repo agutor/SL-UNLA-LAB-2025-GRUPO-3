@@ -1,5 +1,5 @@
 from datetime import date, time
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 
 from .config import ESTADO_PENDIENTE
@@ -23,17 +23,63 @@ class actualizar_turno_base(BaseModel):
 class persona_base(BaseModel):
     nombre: str
     dni: str
-    email: str
+    email: EmailStr
     telefono: str
     fecha_nacimiento: date
+    
+    @field_validator('dni')
+    @classmethod
+    def validar_dni(cls, valor):
+        if not valor:
+            raise ValueError('El DNI no puede estar vacío')
+        if not valor.isdigit():
+            raise ValueError('El DNI debe contener solo números')
+        if len(valor) < 7 or len(valor) > 8:
+            raise ValueError('El DNI debe tener entre 7 y 8 dígitos')
+        return valor
+    
+    @field_validator('telefono')
+    @classmethod
+    def validar_telefono(cls, valor):
+        if not valor:
+            raise ValueError('El teléfono no puede estar vacío')
+        if not valor.isdigit():
+            raise ValueError('El teléfono debe contener solo números')
+        if len(valor) < 10:
+            raise ValueError('El teléfono debe tener al menos 10 dígitos')
+        return valor
 
 
 class actualizar_persona_base(BaseModel):
     nombre: Optional[str] = None
     dni: Optional[str] = None
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
     telefono: Optional[str] = None
     fecha_nacimiento: Optional[date] = None
+    
+    @field_validator('dni')
+    @classmethod
+    def validar_dni(cls, valor):
+        if valor is not None:
+            if not valor:
+                raise ValueError('El DNI no puede estar vacío')
+            if not valor.isdigit():
+                raise ValueError('El DNI debe contener solo números')
+            if len(valor) < 7 or len(valor) > 8:
+                raise ValueError('El DNI debe tener entre 7 y 8 dígitos')
+        return valor
+    
+    @field_validator('telefono')
+    @classmethod
+    def validar_telefono(cls, valor):
+        if valor is not None:
+            if not valor:
+                raise ValueError('El teléfono no puede estar vacío')
+            if not valor.isdigit():
+                raise ValueError('El teléfono debe contener solo números')
+            if len(valor) < 10:
+                raise ValueError('El teléfono debe tener al menos 10 dígitos')
+        return valor
 
 
 # Schemas de respuesta para turnos

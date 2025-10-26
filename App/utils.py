@@ -1,6 +1,5 @@
 from datetime import date
 from fastapi import HTTPException
-from email_validator import validate_email, EmailNotValidError
 import calendar
 
 from .config import ESTADO_ASISTIDO, ESTADO_CANCELADO, MAX_EDAD_PERMITIDA
@@ -24,29 +23,6 @@ def validar_fecha_pasada(fecha_turno: date):
             detail="No se pueden utilizar fechas anteriores a la fecha actual"
         )
     
-
-def validar_email(email: str):
-    try:
-        valid_email = validate_email(email)
-        return valid_email.email  
-    except EmailNotValidError as e:
-
-#los errores por default estan en ingles, aca cambio el idioma
-        error_msg = str(e).lower()
-        if "must have an @-sign" in error_msg:
-            raise HTTPException(status_code=400, detail="email invalido: El email debe tener un simbolo @")
-        elif "must be something after the @-sign" in error_msg:
-            raise HTTPException(status_code=400, detail="email invalido: Debe haber algo despues del simbolo @")
-        elif "domain" in error_msg and "invalid" in error_msg:
-            raise HTTPException(status_code=400, detail="email invalido: El dominio del email no es valido")
-        elif "local part" in error_msg:
-            raise HTTPException(status_code=400, detail="email invalido: La parte local del email (antes del @) no es valida")
-        elif "too long" in error_msg:
-            raise HTTPException(status_code=400, detail="email invalido: El email es demasiado largo")
-        elif "empty" in error_msg:
-            raise HTTPException(status_code=400, detail="email invalido: El email no puede estar vacio")
-        else:
-            raise HTTPException(status_code=400, detail=f"email invalido: {str(e)}")
 
 def calcular_edad(fecha_nacimiento: date):
     hoy = date.today()

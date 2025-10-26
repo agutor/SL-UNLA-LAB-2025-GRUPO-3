@@ -23,14 +23,36 @@ def crear_turno(db: Session, turno_data: turno_base):
         )
     
     validar_fecha_pasada(turno_data.fecha)
+    
+    # Validar que el horario esté dentro del rango de atención
+    hora_solicitada = turno_data.hora
+    hora_inicio = time.fromisoformat(HORARIO_INICIO)
+    hora_fin = time.fromisoformat(HORARIO_FIN)
+    
+    if hora_solicitada < hora_inicio or hora_solicitada > hora_fin:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"El horario {hora_solicitada.strftime('%H:%M')} está fuera del horario de atención ({HORARIO_INICIO} - {HORARIO_FIN})"
+        )
+    
+    # Validar que el horario sea un múltiplo del intervalo de turnos
+    minutos_totales = hora_solicitada.hour * 60 + hora_solicitada.minute
+    minutos_inicio = hora_inicio.hour * 60 + hora_inicio.minute
+    diferencia_minutos = minutos_totales - minutos_inicio
+    
+    if diferencia_minutos % INTERVALO_TURNOS_MINUTOS != 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"El horario debe ser cada {INTERVALO_TURNOS_MINUTOS} minutos. Horarios válidos: 08:00, 08:30, 09:00, etc."
+        )
 
+    # Verificar que el horario esté disponible (no ocupado)
     horarios_disponibles = obtener_turnos_disponibles(db, turno_data.fecha)
-    hora_solicitada = turno_data.hora.strftime("%H:%M")
     
     if hora_solicitada not in horarios_disponibles:
         raise HTTPException(
             status_code=400, 
-            detail=f"El horario {hora_solicitada} del día {turno_data.fecha} no está disponible"
+            detail=f"El horario {hora_solicitada.strftime('%H:%M')} del día {turno_data.fecha} ya está ocupado"
         )
     
     
@@ -137,7 +159,7 @@ def obtener_turnos_disponibles(db: Session, fecha: date):
         Turno.estado != ESTADO_CANCELADO
     ).all()
     
-    horas_ocupadas = {turno.hora for turno in turnos_ocupados}
+    horas_ocupadas = {turno_ocupado.hora for turno_ocupado in turnos_ocupados}
     
     return [
         hora 

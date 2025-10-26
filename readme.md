@@ -1,72 +1,138 @@
-# Integrantes
+# Sistema de Gestión de Turnos - API REST
 
-- Julian Villaverde
-- Agustin Torres Valenzuela
+### Sistema de gestión de turnos médicos.
   
-# Separación de tareas (Hito 2)
-## Julian Villaverde
-- Punto E (Endpoints de reportes)
-- Documentación postman
+**Universidad Nacional de Lanús (UNLa)**  
+**Asignatura:** Seminario de Lenguajes - Python  
+**Docente:** Mg. Lic. María Alejandra VRANIC  
+**Docente:** Lic. Nicolás BOREA  
+**Docente:** Lic. Gonzalo CERBELLI  
+**Año:** 2025  
+**Grupo 3:** Agustín Torres Valenzuela  
 
+---
 
-### Endpoints (Hito 2)
-- GET /reportes/turnos-por-fecha
-- GET /reportes/turnos-cancelados-por-mes
-- GET /reportes/turnos-por-persona
-- GET /reportes/turnos-cancelados
-- GET /reportes/turnos-confirmados
-- GET /reportes/estado-personas
+## Descripción del Proyecto
 
-## Agustin Torres Valenzuela
-- Reestructura del proyecto
-- Punto D (Endpoints de Estado de Turno)
-- Fix punto C (Calculo turnos disponibles)
-- Variables de entorno
-- Documentación postman
+API REST para la gestión de turnos médicos que permite:
+- Administrar personas (pacientes)
+- Gestionar turnos (crear, modificar, cancelar, confirmar)
+- Consultar disponibilidad de horarios
+- Generar reportes
 
-### Endpoints
-- PUT /turnos/{turno_id}/cancelar
-- PUT /turnos/{turno_id}/confirmar
+---
 
-# Separación de tareas (Hito 1)
+## Especificaciones para Levantar el Proyecto
 
-## Julian Villaverde
-- Creacion de la documentacion y testeo en postman
-- Punto A (ABM Personas)
+### **Requisitos Previos**
 
-### Endpoints (Hito 1)
-- GET / (Verifica funcionamiento de la API) 
+- Python 3.12 o superior
+- pip (gestor de paquetes de Python)
+- Git
 
-- POST /personas
-- GET /personas
-- GET /personas/{id}
-- PUT /personas/{id}
-- DELETE /personas/{id} (verificaciones incluidas)
+### **Instalación**
 
-## Agustin Torres Valenzuela
-- Punto B (ABM Turnos)
-- DER
+1. **Clonar el repositorio**
+   ```bash
+   git clone https://github.com/agutor/SL-UNLA-LAB-2025-GRUPO-3.git
+   cd SL-UNLA-LAB-2025-GRUPO-3
+   ```
 
-### Endpoints (Hito 1)
-- POST /turnos
-- GET /turnos
-- GET /turnos/{id}
-- PUT /turnos/{id}
-- DELETE /turnos/{id}
+2. **Crear entorno virtual**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # En Linux/Mac
+    ```
 
-## Valentin Mesa
-- Punto C (Calculo turnos disponibles)
+   ```
+   python -m venv venv
+   venv\Scripts\activate  # En Windows
+    ```
 
-### Endpoints
-- GET /turnos-disponibles?fecha=YYYY-MM-DD
+3. **Instalar dependencias**
+   ```bash
+   pip install -r Requirements.txt
+   ```
 
-## Gabriela Pedicino
-- Validaciones (Personas, Turnos) (Julian, Valentin, Agustin)
-- Validador de Emails (Julian)
-- Reglas de negocio (Turnos) (Agustin)
+4. **Levantar el servidor**
+   ```bash
+   uvicorn App.main:app --reload
+   ```
 
+5. **Acceder a la aplicación**
+   - API: http://127.0.0.1:8000
+   - Documentación interactiva (Swagger): http://127.0.0.1:8000/docs
+   - Documentación alternativa (ReDoc): http://127.0.0.1:8000/redoc
+   - Utilizando la [Collection disponible](./SL-UNLA-LAB-GRUPO-3.postman_collection.json) en Postman
+   
+---
 
-## Documentacion:
-- Coleccion Postman: https://www.postman.com/julianagustinvillaverde-2391323/workspace/grupo03/collection/48509537-0edd7cd0-4238-445c-8c03-a3d3a176fd9f?action=share&creator=48509537
-- DER https://drive.google.com/file/d/10Wc69fFGzbVahQCzB7g9bROYeQFTHv13/view?usp=sharing
-- videos:https://drive.google.com/drive/folders/1iTqdZDBh8eZlC2myHAEaruq2zYT_QD3v?usp=sharing    
+## Colección de Endpoints
+
+### **Verificación**
+- `GET /` - Verificar funcionamiento de la API
+
+### **Personas (ABM)**
+- `POST /personas` - Crear una persona
+- `GET /personas` - Listar todas las personas
+- `GET /personas/{id}` - Obtener persona por ID
+- `PUT /personas/{id}` - Actualizar persona
+- `DELETE /personas/{id}` - Eliminar persona
+
+### **Turnos (ABM)**
+- `POST /turnos` - Crear un turno
+- `GET /turnos` - Listar todos los turnos
+- `GET /turnos/{id}` - Obtener turno por ID
+- `PUT /turnos/{id}` - Actualizar turno
+- `DELETE /turnos/{id}` - Eliminar turno
+- `GET /turnos-disponibles?fecha=YYYY-MM-DD` - Consultar horarios disponibles
+
+### **Estado de Turnos**
+- `PUT /turnos/{turno_id}/cancelar` - Cancelar un turno
+- `PUT /turnos/{turno_id}/confirmar` - Confirmar un turno
+
+### **Reportes**
+- `GET /reportes/turnos-por-fecha?fecha=YYYY-MM-DD` - Turnos por fecha específica
+- `GET /reportes/turnos-cancelados-por-mes` - Turnos cancelados del mes actual
+- `GET /reportes/turnos-por-persona?dni=12345678` - Turnos de una persona por DNI
+- `GET /reportes/turnos-cancelados?min=5` - Personas con mínimo de cancelaciones
+- `GET /reportes/turnos-confirmados?desde=YYYY-MM-DD&hasta=YYYY-MM-DD&pagina=1` - Turnos confirmados con paginación
+- `GET /reportes/estado-personas?habilitado=true` - Personas por estado (habilitadas/deshabilitadas)
+
+---
+
+**Enlace al video:** [Google Drive](https://drive.google.com/drive/folders/1Pzwx9yPld4Ttu2pUoRtpltgWTY_l6NnJ?usp=sharing)
+
+---
+
+## Estructura del Proyecto
+
+```
+SL-UNLA-LAB-2025-GRUPO-3/
+│
+├── App/
+│   ├── main.py              # Punto de entrada de la aplicación
+│   ├── config.py            # Configuración y variables de entorno
+│   ├── database.py          # Configuración de la base de datos
+│   ├── models.py            # Modelos SQLAlchemy
+│   ├── schemas.py           # Esquemas Pydantic
+│   ├── utils.py             # Funciones utilitarias
+│   ├── crudPersonas.py      # Operaciones CRUD de personas
+│   └── crudTurnos.py        # Operaciones CRUD de turnos
+│
+├── .env                    
+├── Requirements.txt       
+├── readme.md               
+```
+
+---
+
+## Tecnologías Utilizadas
+
+- **FastAPI** 
+- **SQLAlchemy**
+- **Pydantic**
+- **SQLite**
+- **Uvicorn** 
+- **python-dotenv**
+
