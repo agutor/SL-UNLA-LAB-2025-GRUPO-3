@@ -1,12 +1,12 @@
-from datetime import date, time, timedelta, datetime
+from datetime import date, time, timedelta
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from App.schemas import turno_base, PersonaConTurnos, TurnoReporte
 
 from .utils import validar_fecha_pasada, validar_turno_modificable
 from .crudPersonas import validar_persona_habilitada, buscar_persona, cambiar_estado_persona
-from .models import Turno, Persona
-from .config import HORARIO_INICIO, HORARIO_FIN, INTERVALO_TURNOS_MINUTOS, MAX_TURNOS_CANCELADOS, DIAS_LIMITE_CANCELACIONES, ESTADO_PENDIENTE, ESTADO_CONFIRMADO, ESTADO_CANCELADO, ESTADO_ASISTIDO, LIMIT_PAGINACION_DEFAULT
+from .models import Turno
+from .config import HORARIO_INICIO, HORARIO_FIN, INTERVALO_TURNOS_MINUTOS, MAX_TURNOS_CANCELADOS, DIAS_LIMITE_CANCELACIONES, ESTADO_PENDIENTE, ESTADO_CONFIRMADO, ESTADO_CANCELADO, ESTADO_ASISTIDO, LIMIT_PAGINACION_DEFAULT, HORARIOS_DISPONIBLES
 
 
 def crear_turno(db: Session, turno_data: turno_base):
@@ -140,20 +140,14 @@ def obtener_turnos_por_fecha(db: Session, fecha: date):
     return db.query(Turno).filter(Turno.fecha == fecha).all()
 
 
+def obtener_turnos_por_persona(db: Session, persona_id: int):
+    return db.query(Turno).filter(Turno.persona_id == persona_id).all()
+
+
 def obtener_turnos_disponibles(db: Session, fecha: date):
     
     validar_fecha_pasada(fecha)
     
-    horarios_posibles = []
-    hora_actual = time.fromisoformat(HORARIO_INICIO) 
-    hora_limite = time.fromisoformat(HORARIO_FIN)
-
-    while hora_actual <= hora_limite:
-        horarios_posibles.append(hora_actual)
-        
-        datetime_temp = datetime.combine(fecha, hora_actual) + timedelta(minutes=INTERVALO_TURNOS_MINUTOS)
-        hora_actual = datetime_temp.time()
-        
     turnos_ocupados = db.query(Turno.hora).filter(
         Turno.fecha == fecha,
         Turno.estado != ESTADO_CANCELADO
@@ -163,7 +157,7 @@ def obtener_turnos_disponibles(db: Session, fecha: date):
     
     return [
         hora 
-        for hora in horarios_posibles 
+        for hora in HORARIOS_DISPONIBLES 
         if hora not in horas_ocupadas
     ]
 
@@ -220,13 +214,13 @@ def marcar_asistencia_turno(db: Session, turno_id: int):
 
 def agrupar_turnos_por_persona(turnos, incluir_fecha=False):
     
-    personas_dict = {}
+    diccionario_personas = {}
     
     for turno in turnos:
         persona_id = turno.persona_id
         
-        if persona_id not in personas_dict:
-            personas_dict[persona_id] = PersonaConTurnos(
+        if persona_id not in diccionario_personas:
+            diccionario_personas[persona_id] = PersonaConTurnos(
                 id=turno.persona.id,
                 nombre=turno.persona.nombre,
                 dni=turno.persona.dni,
@@ -243,13 +237,12 @@ def agrupar_turnos_por_persona(turnos, incluir_fecha=False):
         if incluir_fecha:
             turno_reporte.fecha = turno.fecha
         
-        personas_dict[persona_id].turnos.append(turno_reporte)
+        diccionario_personas[persona_id].turnos.append(turno_reporte)
     
-    # Cantidad de turnos por persona
-    for persona in personas_dict.values():
+    for persona in diccionario_personas.values():
         persona.cantidad_turnos = len(persona.turnos)
     
-    return list(personas_dict.values())
+    return list(diccionario_personas.values())
 
 
 def obtener_turnos_cancelados_mes_actual(db: Session):
@@ -268,21 +261,6 @@ def obtener_turnos_cancelados_mes_actual(db: Session):
         Turno.fecha >= primer_dia_mes,
         Turno.fecha <= ultimo_dia_mes
     ).all()
-    
-    return turnos
-
-
-def obtener_turnos_por_dni(db: Session, dni: str):
-
-    persona = db.query(Persona).filter(Persona.dni == dni).first()
-    
-    if not persona:
-        raise HTTPException(status_code=404, detail="Persona no encontrada con ese DNI")
-    
-    turnos = db.query(Turno).filter(Turno.persona_id == persona.id).all()
-    
-    if not turnos:
-        raise HTTPException(status_code=404, detail="No se encontraron turnos para esta persona")
     
     return turnos
 

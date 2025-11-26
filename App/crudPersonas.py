@@ -97,6 +97,15 @@ def buscar_persona(db: Session, persona_id: int):
     return persona
 
 
+def buscar_persona_por_dni(db: Session, dni: str):
+
+    persona = db.query(Persona).filter(Persona.dni == dni).first()
+    if not persona:
+        raise HTTPException(status_code=404, detail="Persona no encontrada con ese DNI")
+
+    return persona
+
+
 def validar_persona_habilitada(db: Session, persona_id: int):
 
     persona = buscar_persona(db, persona_id)   

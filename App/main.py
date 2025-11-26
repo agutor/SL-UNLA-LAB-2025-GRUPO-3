@@ -4,21 +4,23 @@ from typing import List
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException
 
-from .config import LIMIT_PAGINACION_DEFAULT, MIN_CANCELADOS_DEFAULT
-from .crudPersonas import obtener_todas_personas, crear_persona, actualizar_persona, buscar_persona, obtener_personas_con_turnos_cancelados, obtener_personas_por_estado
+from .config import LIMIT_PAGINACION_DEFAULT, MIN_CANCELADOS_DEFAULT, HORARIO_INICIO, HORARIO_FIN, INTERVALO_TURNOS_MINUTOS, HORARIOS_DISPONIBLES
+from .crudPersonas import obtener_todas_personas, crear_persona, actualizar_persona, buscar_persona, obtener_personas_con_turnos_cancelados, obtener_personas_por_estado, buscar_persona_por_dni
 from .crudTurnos import (cancelar_turno, confirmar_turno, crear_turno, eliminar_turno, listar_turnos, 
                         actualizar_turno, buscar_turno, obtener_turnos_disponibles, obtener_turnos_por_fecha,
-                        agrupar_turnos_por_persona, obtener_turnos_cancelados_mes_actual, obtener_turnos_por_dni,
+                        agrupar_turnos_por_persona, obtener_turnos_cancelados_mes_actual, obtener_turnos_por_persona,
                         obtener_turnos_confirmados_por_periodo)
 from .database import Base, engine
 from .models import Turno
 from .schemas import actualizar_turno_base, turno_base, ReporteTurnosPorFecha, ReporteTurnosCancelados, ReportePersonasConCancelaciones, TurnoReporte, ReporteTurnosConfirmadosPaginado, PersonaSimple, ReporteEstadoPersonas, PersonaCompleta, TurnoRespuesta, TurnosDisponiblesRespuesta, PersonaConTurnos, persona_base, actualizar_persona_base, PersonaRespuesta
-from .utils import get_db, calcular_edad, validar_formato_fecha, obtener_nombre_mes
+from .utils import get_db, calcular_edad, validar_formato_fecha, obtener_nombre_mes, generar_horarios_disponibles
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    horarios = generar_horarios_disponibles(HORARIO_INICIO, HORARIO_FIN, INTERVALO_TURNOS_MINUTOS)
+    HORARIOS_DISPONIBLES.extend(horarios)
     yield
 
 app = FastAPI(title="SL-UNLA-LAB-2025-GRUPO-03-API", lifespan=lifespan)
@@ -318,10 +320,26 @@ def obtener_turnos_cancelados_mes_endpoint(db = Depends(get_db)):
 @app.get("/reportes/turnos-por-persona", response_model=PersonaConTurnos, response_model_exclude_none=True)
 def obtener_turnos_por_persona_endpoint(dni: str, db = Depends(get_db)):
     try:
-        turnos = obtener_turnos_por_dni(db, dni)
-        personas_turnos = agrupar_turnos_por_persona(turnos, incluir_fecha=True)
+        persona = buscar_persona_por_dni(db, dni)
+        turnos = obtener_turnos_por_persona(db, persona.id)
         
-        return personas_turnos[0]
+        turnos_reporte = [
+            TurnoReporte(
+                id=turno.id,
+                fecha=turno.fecha,
+                hora=turno.hora,
+                estado=turno.estado
+            )
+            for turno in turnos
+        ]
+        
+        return PersonaConTurnos(
+            id=persona.id,
+            nombre=persona.nombre,
+            dni=persona.dni,
+            cantidad_turnos=len(turnos_reporte),
+            turnos=turnos_reporte
+        )
     except HTTPException:
         raise
     except Exception:

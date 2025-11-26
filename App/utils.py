@@ -1,9 +1,24 @@
-from datetime import date
+from datetime import date, time, datetime, timedelta
 from fastapi import HTTPException
 import calendar
 
 from .config import ESTADO_ASISTIDO, ESTADO_CANCELADO, MAX_EDAD_PERMITIDA
 from .database import SesionLocal
+
+
+def generar_horarios_disponibles(horario_inicio: str, horario_fin: str, intervalo_minutos: int):
+    horarios_disponibles = []
+    hora_actual = time.fromisoformat(horario_inicio)
+    hora_limite = time.fromisoformat(horario_fin)
+    fecha_ref = date.today()
+    
+    while hora_actual <= hora_limite:
+        horarios_disponibles.append(hora_actual)
+        # Convertir time a datetime para poder sumar intervalo de minutos
+        hora_con_intervalo = datetime.combine(fecha_ref, hora_actual) + timedelta(minutes=intervalo_minutos)
+        hora_actual = hora_con_intervalo.time()
+    
+    return horarios_disponibles
 
 #Acceder a la base de datos
 def get_db():
