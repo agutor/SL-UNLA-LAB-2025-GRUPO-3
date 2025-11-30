@@ -9,11 +9,14 @@ from .crudPersonas import obtener_todas_personas, crear_persona, actualizar_pers
 from .crudTurnos import (cancelar_turno, confirmar_turno, crear_turno, eliminar_turno, listar_turnos, 
                         actualizar_turno, buscar_turno, obtener_turnos_disponibles, obtener_turnos_por_fecha,
                         agrupar_turnos_por_persona, obtener_turnos_cancelados_mes_actual, obtener_turnos_por_persona,
-                        obtener_turnos_confirmados_por_periodo)
+                        obtener_turnos_confirmados_por_periodo, obtener_todos_turnos_confirmados_por_periodo)
 from .database import Base, engine
 from .models import Turno
 from .schemas import actualizar_turno_base, turno_base, ReporteTurnosPorFecha, ReporteTurnosCancelados, ReportePersonasConCancelaciones, TurnoReporte, ReporteTurnosConfirmadosPaginado, PersonaSimple, ReporteEstadoPersonas, PersonaCompleta, TurnoRespuesta, TurnosDisponiblesRespuesta, PersonaConTurnos, persona_base, actualizar_persona_base, PersonaRespuesta
 from .utils import get_db, calcular_edad, validar_formato_fecha, obtener_nombre_mes, generar_horarios_disponibles
+from .reportes_pdf import (generar_pdf_turnos_por_fecha, generar_pdf_turnos_cancelados_mes, 
+                       generar_pdf_turnos_por_persona, generar_pdf_personas_con_cancelaciones,
+                       generar_pdf_turnos_confirmados, generar_pdf_estado_personas)
 
 
 @asynccontextmanager
@@ -349,6 +352,12 @@ def obtener_turnos_por_persona_endpoint(dni: str, db = Depends(get_db)):
 @app.get("/reportes/turnos-cancelados", response_model=ReportePersonasConCancelaciones, response_model_exclude_none=True)
 def obtener_personas_con_cancelaciones_endpoint(min: int = MIN_CANCELADOS_DEFAULT, db = Depends(get_db)):
     try:
+        if min < 1:
+            raise HTTPException(
+                status_code=400,
+                detail="El número mínimo de turnos cancelados debe ser al menos 1"
+            )
+        
         turnos_con_minimo_cancelaciones = obtener_personas_con_turnos_cancelados(db, min)
         personas_con_cancelaciones = agrupar_turnos_por_persona(turnos_con_minimo_cancelaciones, incluir_fecha=True)
         
@@ -435,3 +444,100 @@ def obtener_personas_por_estado_endpoint(habilitado: bool, db = Depends(get_db))
         raise
     except Exception:
         raise HTTPException(status_code=500, detail="Error al generar el reporte")
+
+
+# ========================== Endpoints Reportes PDF ==========================
+
+@app.get("/reportes/pdf/turnos-por-fecha")
+def obtener_pdf_turnos_por_fecha(fecha: str, db = Depends(get_db)):
+    try:
+        validar_formato_fecha(fecha)
+        fecha_date = date.fromisoformat(fecha)
+        
+        turnos = obtener_turnos_por_fecha(db, fecha_date)
+        
+        return generar_pdf_turnos_por_fecha(fecha_date, turnos)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error al generar el PDF")
+
+
+@app.get("/reportes/pdf/turnos-cancelados-por-mes")
+def obtener_pdf_turnos_cancelados_mes(db = Depends(get_db)):
+    try:
+        turnos_cancelados = obtener_turnos_cancelados_mes_actual(db)
+        fecha_actual = date.today()
+        
+        return generar_pdf_turnos_cancelados_mes(
+            obtener_nombre_mes(fecha_actual),
+            fecha_actual.year,
+            turnos_cancelados
+        )
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error al generar el PDF")
+
+
+@app.get("/reportes/pdf/turnos-por-persona")
+def obtener_pdf_turnos_por_persona(dni: str, db = Depends(get_db)):
+    try:
+        persona = buscar_persona_por_dni(db, dni)
+        turnos = obtener_turnos_por_persona(db, persona.id)
+        
+        return generar_pdf_turnos_por_persona(persona, turnos)
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error al generar el PDF: {str(e)}")
+
+
+@app.get("/reportes/pdf/turnos-cancelados")
+def obtener_pdf_personas_con_cancelaciones(min: int = MIN_CANCELADOS_DEFAULT, db = Depends(get_db)):
+    try:
+        if min < 1:
+            raise HTTPException(
+                status_code=400,
+                detail="El número mínimo de turnos cancelados debe ser al menos 1"
+            )
+        
+        turnos_con_minimo_cancelaciones = obtener_personas_con_turnos_cancelados(db, min)
+        
+        return generar_pdf_personas_con_cancelaciones(min, turnos_con_minimo_cancelaciones)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error al generar el PDF")
+
+
+@app.get("/reportes/pdf/turnos-confirmados")
+def obtener_pdf_turnos_confirmados(desde: str, hasta: str, db = Depends(get_db)):
+    try:
+        validar_formato_fecha(desde)
+        validar_formato_fecha(hasta)
+        
+        fecha_desde = date.fromisoformat(desde)
+        fecha_hasta = date.fromisoformat(hasta)
+        
+        turnos_confirmados = obtener_todos_turnos_confirmados_por_periodo(db, fecha_desde, fecha_hasta)
+        
+        return generar_pdf_turnos_confirmados(fecha_desde, fecha_hasta, turnos_confirmados)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error al generar el PDF")
+
+
+@app.get("/reportes/pdf/estado-personas")
+def obtener_pdf_estado_personas(habilitado: bool, db = Depends(get_db)):
+    try:
+        personas = obtener_personas_por_estado(db, habilitado)
+        
+        return generar_pdf_estado_personas(habilitado, personas)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error al generar el PDF")

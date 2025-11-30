@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from App.schemas import turno_base, PersonaConTurnos, TurnoReporte
 
-from .utils import validar_fecha_pasada, validar_turno_modificable
+from .utils import validar_fecha_pasada, validar_turno_modificable, validar_rango_fechas
 from .crudPersonas import validar_persona_habilitada, buscar_persona, cambiar_estado_persona
 from .models import Turno
 from .config import HORARIO_INICIO, HORARIO_FIN, INTERVALO_TURNOS_MINUTOS, MAX_TURNOS_CANCELADOS, DIAS_LIMITE_CANCELACIONES, ESTADO_PENDIENTE, ESTADO_CONFIRMADO, ESTADO_CANCELADO, ESTADO_ASISTIDO, LIMIT_PAGINACION_DEFAULT, HORARIOS_DISPONIBLES
@@ -269,11 +269,7 @@ def obtener_turnos_cancelados_mes_actual(db: Session):
 
 def obtener_turnos_confirmados_por_periodo(db: Session, fecha_desde: date, fecha_hasta: date, pagina: int = 1, limite: int = LIMIT_PAGINACION_DEFAULT):
     
-    if fecha_desde > fecha_hasta:
-        raise HTTPException(
-            status_code=400, 
-            detail="La fecha 'desde' no puede ser posterior a la fecha 'hasta'"
-        )
+    validar_rango_fechas(fecha_desde, fecha_hasta)
     
     turnos_confirmados_query = db.query(Turno).filter(
         Turno.estado == ESTADO_CONFIRMADO,
@@ -288,3 +284,13 @@ def obtener_turnos_confirmados_por_periodo(db: Session, fecha_desde: date, fecha
     turnos_paginados = turnos_confirmados_query.offset(offset).limit(limite).all()
     
     return turnos_paginados, total_turnos_confirmados
+
+
+def obtener_todos_turnos_confirmados_por_periodo(db: Session, fecha_desde: date, fecha_hasta: date):
+    validar_rango_fechas(fecha_desde, fecha_hasta)
+    
+    return db.query(Turno).filter(
+        Turno.estado == ESTADO_CONFIRMADO,
+        Turno.fecha >= fecha_desde,
+        Turno.fecha <= fecha_hasta
+    ).all()

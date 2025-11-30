@@ -73,6 +73,14 @@ def validar_turno_modificable(turno):
             detail=f"No se puede modificar un turno {turno.estado}"
         )
 
+
+def validar_rango_fechas(fecha_desde: date, fecha_hasta: date):
+    if fecha_desde > fecha_hasta:
+        raise HTTPException(
+            status_code=400, 
+            detail="La fecha 'desde' no puede ser posterior a la fecha 'hasta'"
+        )
+
 def obtener_nombre_mes(fecha):
     
     return calendar.month_name[fecha.month].lower()
