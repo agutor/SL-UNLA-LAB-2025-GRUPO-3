@@ -17,6 +17,9 @@ from .utils import get_db, calcular_edad, validar_formato_fecha, obtener_nombre_
 from .reportes_pdf import (generar_pdf_turnos_por_fecha, generar_pdf_turnos_cancelados_mes, 
                        generar_pdf_turnos_por_persona, generar_pdf_personas_con_cancelaciones,
                        generar_pdf_turnos_confirmados, generar_pdf_estado_personas)
+from .reportes_csv import (generar_csv_turnos_por_fecha, generar_csv_turnos_cancelados_mes,
+                       generar_csv_turnos_por_persona, generar_csv_personas_con_cancelaciones,
+                       generar_csv_turnos_confirmados, generar_csv_estado_personas)
 
 
 @asynccontextmanager
@@ -541,3 +544,104 @@ def obtener_pdf_estado_personas(habilitado: bool, db = Depends(get_db)):
         raise
     except Exception:
         raise HTTPException(status_code=500, detail="Error al generar el PDF")
+
+
+# ========================== Endpoints Reportes CSV ==========================
+
+@app.get("/reportes/csv/turnos-por-fecha")
+def obtener_csv_turnos_por_fecha(fecha: str, db = Depends(get_db)):
+    try:
+        validar_formato_fecha(fecha)
+        fecha_date = date.fromisoformat(fecha)
+        
+        turnos = obtener_turnos_por_fecha(db, fecha_date)
+        
+        return generar_csv_turnos_por_fecha(fecha_date, turnos)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error al generar el CSV")
+
+
+@app.get("/reportes/csv/turnos-cancelados-por-mes")
+def obtener_csv_turnos_cancelados_mes(db = Depends(get_db)):
+    try:
+        turnos_cancelados = obtener_turnos_cancelados_mes_actual(db)
+        fecha_actual = date.today()
+        
+        if not turnos_cancelados:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No hay turnos cancelados en {obtener_nombre_mes(fecha_actual)} {fecha_actual.year}"
+            )
+        
+        return generar_csv_turnos_cancelados_mes(
+            obtener_nombre_mes(fecha_actual),
+            fecha_actual.year,
+            turnos_cancelados
+        )
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error al generar el CSV")
+
+
+@app.get("/reportes/csv/turnos-por-persona")
+def obtener_csv_turnos_por_persona(dni: str, db = Depends(get_db)):
+    try:
+        persona = buscar_persona_por_dni(db, dni)
+        turnos = obtener_turnos_por_persona(db, persona.id)
+        
+        return generar_csv_turnos_por_persona(persona, turnos)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error al generar el CSV")
+
+
+@app.get("/reportes/csv/turnos-cancelados")
+def obtener_csv_personas_con_cancelaciones(min: int = MIN_CANCELADOS_DEFAULT, db = Depends(get_db)):
+    try:
+        if min < 1:
+            raise HTTPException(
+                status_code=400,
+                detail="El número mínimo de turnos cancelados debe ser al menos 1"
+            )
+        
+        turnos_con_minimo_cancelaciones = obtener_personas_con_turnos_cancelados(db, min)
+        
+        return generar_csv_personas_con_cancelaciones(min, turnos_con_minimo_cancelaciones)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error al generar el CSV")
+
+
+@app.get("/reportes/csv/turnos-confirmados")
+def obtener_csv_turnos_confirmados(desde: str, hasta: str, db = Depends(get_db)):
+    try:
+        validar_formato_fecha(desde)
+        validar_formato_fecha(hasta)
+        
+        fecha_desde = date.fromisoformat(desde)
+        fecha_hasta = date.fromisoformat(hasta)
+        
+        turnos_confirmados = obtener_todos_turnos_confirmados_por_periodo(db, fecha_desde, fecha_hasta)
+        
+        return generar_csv_turnos_confirmados(fecha_desde, fecha_hasta, turnos_confirmados)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error al generar el CSV")
+
+
+@app.get("/reportes/csv/estado-personas")
+def obtener_csv_estado_personas(habilitado: bool, db = Depends(get_db)):
+    try:
+        personas = obtener_personas_por_estado(db, habilitado)
+        
+        return generar_csv_estado_personas(habilitado, personas)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error al generar el CSV")

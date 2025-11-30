@@ -28,7 +28,39 @@ ESTADO_ASISTIDO = os.getenv("ESTADO_ASISTIDO")
 MIN_CANCELADOS_DEFAULT = int(os.getenv("MIN_CANCELADOS_DEFAULT", "5"))
 LIMIT_PAGINACION_DEFAULT = int(os.getenv("LIMIT_PAGINACION_DEFAULT", "5"))
 
-# ==================== Configuración de PDFs ====================
+# ==================== Configuración de Reportes ====================
+
+# Encabezados de tablas (usados en PDF y CSV)
+HEADER_ID = os.getenv("HEADER_ID", "ID")
+HEADER_ID_PERSONA = os.getenv("HEADER_ID_PERSONA", "ID Persona")
+HEADER_PACIENTE = os.getenv("HEADER_PACIENTE", "Paciente")
+HEADER_NOMBRE = os.getenv("HEADER_NOMBRE", "Nombre")
+HEADER_DNI = os.getenv("HEADER_DNI", "DNI")
+HEADER_EMAIL = os.getenv("HEADER_EMAIL", "Email")
+HEADER_TELEFONO = os.getenv("HEADER_TELEFONO", "Teléfono")
+HEADER_EDAD = os.getenv("HEADER_EDAD", "Edad")
+HEADER_FECHA = os.getenv("HEADER_FECHA", "Fecha")
+HEADER_HORA = os.getenv("HEADER_HORA", "Hora")
+HEADER_ESTADO = os.getenv("HEADER_ESTADO", "Estado")
+
+# Textos del sistema
+TITULO_SISTEMA = os.getenv("TITULO_SISTEMA", "SISTEMA DE GESTIÓN DE TURNOS MÉDICOS")
+FORMATO_FECHA_GENERACION = os.getenv("FORMATO_FECHA", "Generado el: %d/%m/%Y %H:%M")
+
+# Mensajes comunes
+MSG_SIN_DATOS = os.getenv("MSG_SIN_DATOS", "No hay datos.")
+MSG_SIN_TURNOS_FECHA = os.getenv("MSG_SIN_TURNOS_FECHA", "No hay turnos para esta fecha.")
+MSG_SIN_TURNOS_CANCELADOS = os.getenv("MSG_SIN_TURNOS_CANCELADOS", "No hay turnos cancelados este mes.")
+MSG_SIN_TURNOS_CONFIRMADOS = os.getenv("MSG_SIN_TURNOS_CONFIRMADOS", "No hay turnos confirmados.")
+MSG_SIN_TURNOS_PERSONA = os.getenv("MSG_SIN_TURNOS_PERSONA", "ATENCION: Este paciente no tiene turnos registrados.")
+
+# Textos adicionales para reportes
+TEXTO_HABILITADO = os.getenv("TEXTO_HABILITADO", "HABILITADO")
+TEXTO_DESHABILITADO = os.getenv("TEXTO_DESHABILITADO", "DESHABILITADO")
+TEXTO_INFO_PACIENTE = os.getenv("TEXTO_INFO_PACIENTE", "Información del Paciente")
+TEXTO_ANOS = os.getenv("TEXTO_ANOS", "años")
+
+# ==================== Configuración específica de PDFs ====================
 
 # Colores del sistema para PDFs
 PDF_COLOR_PRIMARIO = os.getenv("PDF_COLOR_PRIMARIO", "#2C3E50")
@@ -71,27 +103,3 @@ PDF_PADDING_MUY_GRANDE = int(os.getenv("PDF_PADDING_MUY_GRANDE", "10"))
 PDF_BORDER_DELGADO = int(os.getenv("PDF_BORDER_DELGADO", "1"))
 PDF_BORDER_MEDIO = int(os.getenv("PDF_BORDER_MEDIO", "3"))
 PDF_BORDER_GRUESO = int(os.getenv("PDF_BORDER_GRUESO", "4"))
-
-# Textos del sistema
-PDF_TITULO_SISTEMA = os.getenv("PDF_TITULO_SISTEMA", "SISTEMA DE GESTIÓN DE TURNOS MÉDICOS")
-PDF_FORMATO_FECHA_GENERACION = os.getenv("PDF_FORMATO_FECHA", "Generado el: %d/%m/%Y %H:%M")
-
-# Mensajes comunes
-PDF_MSG_SIN_DATOS = os.getenv("PDF_MSG_SIN_DATOS", "No hay datos.")
-PDF_MSG_SIN_TURNOS_FECHA = os.getenv("PDF_MSG_SIN_TURNOS_FECHA", "No hay turnos para esta fecha.")
-PDF_MSG_SIN_TURNOS_CANCELADOS = os.getenv("PDF_MSG_SIN_TURNOS_CANCELADOS", "No hay turnos cancelados este mes.")
-PDF_MSG_SIN_TURNOS_CONFIRMADOS = os.getenv("PDF_MSG_SIN_TURNOS_CONFIRMADOS", "No hay turnos confirmados.")
-PDF_MSG_SIN_TURNOS_PERSONA = os.getenv("PDF_MSG_SIN_TURNOS_PERSONA", "ATENCION: Este paciente no tiene turnos registrados.")
-
-# Encabezados de tablas
-PDF_HEADER_ID = os.getenv("PDF_HEADER_ID", "ID")
-PDF_HEADER_ID_PERSONA = os.getenv("PDF_HEADER_ID_PERSONA", "ID Persona")
-PDF_HEADER_PACIENTE = os.getenv("PDF_HEADER_PACIENTE", "Paciente")
-PDF_HEADER_NOMBRE = os.getenv("PDF_HEADER_NOMBRE", "Nombre")
-PDF_HEADER_DNI = os.getenv("PDF_HEADER_DNI", "DNI")
-PDF_HEADER_EMAIL = os.getenv("PDF_HEADER_EMAIL", "Email")
-PDF_HEADER_TELEFONO = os.getenv("PDF_HEADER_TELEFONO", "Teléfono")
-PDF_HEADER_EDAD = os.getenv("PDF_HEADER_EDAD", "Edad")
-PDF_HEADER_FECHA = os.getenv("PDF_HEADER_FECHA", "Fecha")
-PDF_HEADER_HORA = os.getenv("PDF_HEADER_HORA", "Hora")
-PDF_HEADER_ESTADO = os.getenv("PDF_HEADER_ESTADO", "Estado")

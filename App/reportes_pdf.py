@@ -1,9 +1,9 @@
 from datetime import date, datetime
-from typing import List, Optional
+from typing import List
 from io import BytesIO
 from decimal import Decimal
 
-from borb.pdf import Document, Page, PageLayout, SingleColumnLayout, Paragraph, PDF, FixedColumnWidthTable, LayoutElement, X11Color, HexColor
+from borb.pdf import Document, Page, PageLayout, SingleColumnLayout, Paragraph, PDF, FixedColumnWidthTable, LayoutElement, HexColor
 from fastapi.responses import StreamingResponse
 
 from .utils import calcular_edad
@@ -11,17 +11,17 @@ from .utils import calcular_edad
 from .models import Persona, Turno
 from .config import (
     ESTADO_ASISTIDO, ESTADO_CANCELADO, ESTADO_CONFIRMADO,
+    FORMATO_FECHA_GENERACION, HEADER_DNI, HEADER_EDAD, HEADER_EMAIL, HEADER_ESTADO, 
+    HEADER_FECHA, HEADER_HORA, HEADER_ID, HEADER_ID_PERSONA, HEADER_NOMBRE, HEADER_PACIENTE,
+    HEADER_TELEFONO, MSG_SIN_TURNOS_CANCELADOS, MSG_SIN_TURNOS_CONFIRMADOS,
+    MSG_SIN_TURNOS_FECHA, MSG_SIN_TURNOS_PERSONA, TITULO_SISTEMA,
     PDF_BORDER_DELGADO, PDF_BORDER_GRUESO, PDF_BORDER_MEDIO,
     PDF_COLOR_ALERTA, PDF_COLOR_ASISTIDO, PDF_COLOR_CANCELADO, PDF_COLOR_CONFIRMADO,
     PDF_COLOR_DESHABILITADO, PDF_COLOR_HABILITADO, PDF_COLOR_PENDIENTE, PDF_COLOR_PRIMARIO,
     PDF_COLOR_SECUNDARIO, PDF_COLOR_TEXTO_GRIS, PDF_COLOR_TEXTO_GRIS_CLARO,
     PDF_FONT_BOLD, PDF_FONTSIZE_DATO, PDF_FONTSIZE_NORMAL, PDF_FONTSIZE_PEQUENO,
-    PDF_FONTSIZE_SUBTITULO, PDF_FONTSIZE_TITULO, PDF_FORMATO_FECHA_GENERACION,
-    PDF_HEADER_DNI, PDF_HEADER_EDAD, PDF_HEADER_EMAIL, PDF_HEADER_ESTADO, PDF_HEADER_FECHA,
-    PDF_HEADER_HORA, PDF_HEADER_ID, PDF_HEADER_ID_PERSONA, PDF_HEADER_NOMBRE, PDF_HEADER_PACIENTE,
-    PDF_HEADER_TELEFONO, PDF_MSG_SIN_TURNOS_CANCELADOS, PDF_MSG_SIN_TURNOS_CONFIRMADOS,
-    PDF_MSG_SIN_TURNOS_FECHA, PDF_MSG_SIN_TURNOS_PERSONA, PDF_PADDING_GRANDE, PDF_PADDING_MEDIO,
-    PDF_PADDING_MUY_GRANDE, PDF_PADDING_NORMAL, PDF_PADDING_PEQUENO, PDF_TITULO_SISTEMA
+    PDF_FONTSIZE_SUBTITULO, PDF_FONTSIZE_TITULO, PDF_PADDING_GRANDE, PDF_PADDING_MEDIO,
+    PDF_PADDING_MUY_GRANDE, PDF_PADDING_NORMAL, PDF_PADDING_PEQUENO
 )
 
 
@@ -122,7 +122,7 @@ def crear_pdf_base(titulo: str, subtitulo: str = None) -> tuple[Document, PageLa
     
     # Título del sistema
     layout.append_layout_element(crear_paragraph(
-        PDF_TITULO_SISTEMA,
+        TITULO_SISTEMA,
         font=PDF_FONT_BOLD, 
         font_color=HexColor(PDF_COLOR_PRIMARIO), 
         padding_top=Decimal(PDF_PADDING_PEQUENO),
@@ -153,7 +153,7 @@ def crear_pdf_base(titulo: str, subtitulo: str = None) -> tuple[Document, PageLa
     
     # Fecha de generación
     layout.append_layout_element(crear_paragraph(
-        datetime.now().strftime(PDF_FORMATO_FECHA_GENERACION),
+        datetime.now().strftime(FORMATO_FECHA_GENERACION),
         font_size=PDF_FONTSIZE_PEQUENO, 
         font_color=HexColor(PDF_COLOR_TEXTO_GRIS_CLARO),
         horizontal_alignment=LayoutElement.HorizontalAlignment.MIDDLE, 
@@ -177,15 +177,15 @@ def crear_pdf_base(titulo: str, subtitulo: str = None) -> tuple[Document, PageLa
 def crear_tabla_turnos(turnos: List[Turno], incluir_persona: bool = False, incluir_fecha: bool = True) -> FixedColumnWidthTable:
     if incluir_persona:
         headers = [
-            PDF_HEADER_ID, PDF_HEADER_ID_PERSONA, PDF_HEADER_PACIENTE, 
-            PDF_HEADER_DNI, PDF_HEADER_FECHA, PDF_HEADER_HORA, PDF_HEADER_ESTADO
+            HEADER_ID, HEADER_ID_PERSONA, HEADER_PACIENTE, 
+            HEADER_DNI, HEADER_FECHA, HEADER_HORA, HEADER_ESTADO
         ]
         column_widths = [Decimal(0.06), Decimal(0.08), Decimal(0.26), Decimal(0.10), Decimal(0.14), Decimal(0.14), Decimal(0.22)]
     elif incluir_fecha:
-        headers = [PDF_HEADER_ID, PDF_HEADER_FECHA, PDF_HEADER_HORA, PDF_HEADER_ESTADO]
+        headers = [HEADER_ID, HEADER_FECHA, HEADER_HORA, HEADER_ESTADO]
         column_widths = [Decimal(0.10), Decimal(0.30), Decimal(0.30), Decimal(0.30)]
     else:
-        headers = [PDF_HEADER_ID, PDF_HEADER_HORA, PDF_HEADER_ESTADO]
+        headers = [HEADER_ID, HEADER_HORA, HEADER_ESTADO]
         column_widths = [Decimal(0.15), Decimal(0.40), Decimal(0.45)]
     
     tabla = FixedColumnWidthTable(number_of_rows=len(turnos) + 1, number_of_columns=len(headers), column_widths=column_widths)
@@ -213,12 +213,12 @@ def crear_tabla_turnos(turnos: List[Turno], incluir_persona: bool = False, inclu
 def crear_tabla_personas(personas: List[Persona], incluir_completo: bool = False) -> FixedColumnWidthTable:    
     if incluir_completo:
         headers = [
-            PDF_HEADER_ID, PDF_HEADER_NOMBRE, PDF_HEADER_DNI, 
-            PDF_HEADER_EMAIL, PDF_HEADER_TELEFONO, PDF_HEADER_EDAD, PDF_HEADER_ESTADO
+            HEADER_ID, HEADER_NOMBRE, HEADER_DNI, 
+            HEADER_EMAIL, HEADER_TELEFONO, HEADER_EDAD, HEADER_ESTADO
         ]
         column_widths = [Decimal(0.06), Decimal(0.22), Decimal(0.10), Decimal(0.26), Decimal(0.14), Decimal(0.06), Decimal(0.16)]
     else:
-        headers = [PDF_HEADER_ID, PDF_HEADER_NOMBRE, PDF_HEADER_DNI]
+        headers = [HEADER_ID, HEADER_NOMBRE, HEADER_DNI]
         column_widths = [Decimal(0.10), Decimal(0.65), Decimal(0.25)]
     
     tabla = FixedColumnWidthTable(number_of_rows=len(personas) + 1, number_of_columns=len(headers), column_widths=column_widths)
@@ -260,7 +260,7 @@ def generar_pdf_turnos_por_fecha(fecha: date, turnos: List[Turno]) -> StreamingR
     if turnos:
         agregar_turnos_agrupados_por_persona(layout, turnos, incluir_fecha=False)
     else:
-        layout.append_layout_element(crear_paragraph(PDF_MSG_SIN_TURNOS_FECHA))
+        layout.append_layout_element(crear_paragraph(MSG_SIN_TURNOS_FECHA))
     
     return finalizar_pdf(doc, f"turnos_{fecha}.pdf")
 
@@ -272,7 +272,7 @@ def generar_pdf_turnos_cancelados_mes(mes: str, anio: int, turnos: List[Turno]) 
     if turnos:
         agregar_turnos_agrupados_por_persona(layout, turnos, incluir_fecha=True)
     else:
-        layout.append_layout_element(crear_paragraph(PDF_MSG_SIN_TURNOS_CANCELADOS))
+        layout.append_layout_element(crear_paragraph(MSG_SIN_TURNOS_CANCELADOS))
     
     return finalizar_pdf(doc, f"cancelados_{mes}_{anio}.pdf")
 
@@ -361,7 +361,7 @@ def generar_pdf_turnos_por_persona(persona: Persona, turnos: List[Turno]) -> Str
         layout.append_layout_element(crear_tabla_turnos(turnos, incluir_persona=False, incluir_fecha=True))
     else:
         layout.append_layout_element(crear_paragraph(
-            PDF_MSG_SIN_TURNOS_PERSONA,
+            MSG_SIN_TURNOS_PERSONA,
             font_color=HexColor(PDF_COLOR_ALERTA), 
             padding_top=Decimal(PDF_PADDING_MUY_GRANDE)
         ))
@@ -388,7 +388,7 @@ def generar_pdf_turnos_confirmados(desde: date, hasta: date, turnos: List[Turno]
     if turnos:
         agregar_turnos_agrupados_por_persona(layout, turnos, incluir_fecha=True)
     else:
-        layout.append_layout_element(crear_paragraph(PDF_MSG_SIN_TURNOS_CONFIRMADOS))
+        layout.append_layout_element(crear_paragraph(MSG_SIN_TURNOS_CONFIRMADOS))
     
     return finalizar_pdf(doc, f"confirmados_{desde}_a_{hasta}.pdf")
 
