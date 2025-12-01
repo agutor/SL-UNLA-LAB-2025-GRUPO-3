@@ -37,7 +37,7 @@ def obtener_color_estado(estado: str) -> HexColor:
     return colores.get(estado.lower(), HexColor(PDF_COLOR_TEXTO_GRIS_CLARO))
 
 
-def crear_paragraph(texto: str, **kwargs) -> Paragraph:
+def crear_paragraph(texto: str, **propiedades) -> Paragraph:
     defaults = {
         'font_size': PDF_FONTSIZE_DATO,
         'padding_top': Decimal(PDF_PADDING_PEQUENO),
@@ -45,7 +45,7 @@ def crear_paragraph(texto: str, **kwargs) -> Paragraph:
         'padding_left': Decimal(PDF_PADDING_PEQUENO),
         'padding_right': Decimal(PDF_PADDING_PEQUENO)
     }
-    defaults.update(kwargs)
+    defaults.update(propiedades)
     return Paragraph(texto, **defaults)
 
 
@@ -60,25 +60,25 @@ def crear_celda_header(texto: str) -> Paragraph:
 
 
 def crear_celda_dato(texto: str, font_size=None, padding_extra=False) -> Paragraph:
-    kwargs = {'font_size': font_size or PDF_FONTSIZE_DATO}
+    propiedades = {'font_size': font_size or PDF_FONTSIZE_DATO}
     if padding_extra:
-        kwargs.update({
+        propiedades.update({
             'padding_top': Decimal(PDF_PADDING_GRANDE), 
             'padding_bottom': Decimal(PDF_PADDING_GRANDE),
             'vertical_alignment': LayoutElement.VerticalAlignment.MIDDLE
         })
-    return crear_paragraph(texto, **kwargs)
+    return crear_paragraph(texto, **propiedades)
 
 
 def crear_celda_estado(estado: str, padding_extra=False) -> Paragraph:
-    kwargs = {'font': PDF_FONT_BOLD, 'font_color': obtener_color_estado(estado)}
+    propiedades = {'font': PDF_FONT_BOLD, 'font_color': obtener_color_estado(estado)}
     if padding_extra:
-        kwargs.update({
+        propiedades.update({
             'padding_top': Decimal(PDF_PADDING_GRANDE), 
             'padding_bottom': Decimal(PDF_PADDING_GRANDE),
             'vertical_alignment': LayoutElement.VerticalAlignment.MIDDLE
         })
-    return crear_paragraph(estado.upper(), **kwargs)
+    return crear_paragraph(estado.upper(), **propiedades)
 
 
 def finalizar_pdf(doc: Document, filename: str) -> StreamingResponse:
