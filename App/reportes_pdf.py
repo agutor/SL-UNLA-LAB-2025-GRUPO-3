@@ -216,7 +216,7 @@ def crear_tabla_personas(personas: List[Persona], incluir_completo: bool = False
             HEADER_ID, HEADER_NOMBRE, HEADER_DNI, 
             HEADER_EMAIL, HEADER_TELEFONO, HEADER_EDAD, HEADER_ESTADO
         ]
-        column_widths = [Decimal(0.06), Decimal(0.22), Decimal(0.10), Decimal(0.26), Decimal(0.14), Decimal(0.06), Decimal(0.16)]
+        column_widths = [Decimal(0.06), Decimal(0.22), Decimal(0.10), Decimal(0.26), Decimal(0.12), Decimal(0.06), Decimal(0.18)]
     else:
         headers = [HEADER_ID, HEADER_NOMBRE, HEADER_DNI]
         column_widths = [Decimal(0.10), Decimal(0.65), Decimal(0.25)]
@@ -394,7 +394,7 @@ def generar_pdf_turnos_confirmados(desde: date, hasta: date, turnos: List[Turno]
 
 
 def generar_pdf_estado_personas(habilitado: bool, personas: List[Persona]) -> StreamingResponse:
-    estado = "Habilitadas" if habilitado else "Inhabilitadas"
+    estado = "Habilitadas" if habilitado else "Deshabilitadas"
     doc, layout = crear_pdf_base(f"Personas {estado}", f"Total: {len(personas)}")
     
     if personas:

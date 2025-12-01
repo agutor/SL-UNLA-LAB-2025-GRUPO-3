@@ -68,6 +68,8 @@ def generar_csv_turnos_por_persona(persona: Persona, turnos: List[Turno]) -> Str
     reporte = []
     for turno in turnos:
         reporte.append({
+            HEADER_DNI: persona.dni,
+            HEADER_NOMBRE: persona.nombre,
             HEADER_ID: turno.id,
             HEADER_FECHA: str(turno.fecha),
             HEADER_HORA: str(turno.hora),
